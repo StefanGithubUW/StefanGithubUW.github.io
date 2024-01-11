@@ -3,16 +3,132 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, maximum-scale=1.0" />
+    <link rel="stylesheet" href="prism.css">
+    <script defer src="prism.js"></script>
 
     <title>Stefan D'Souza's HCDE 439 Physical Computing Page!</title>
 
     <link href="style.css" rel="stylesheet" type="text/css" />
   </head>
   <body>
-    <h1>Stefan D'Souza's Assignment 1!</h1>
-    <div class="header">
-      <img src="red-panda.jpg" />
-      <p>Here is all the documentation for assignment 1!</p>
-    </div>
+    <style>
+      p {
+          margin-bottom: 40px;
+      }
+
+      h1 {
+          margin-bottom: 20px;
+      }
+
+      h2 {
+          margin-bottom: 20px;
+      }
+
+      h3 {
+          margin-bottom: 10px;
+      }
+      </style>
+
+    <h1>Stefan D'Souza's Assignment 1: Blink</h1>
+    <h2>Assignment Recording (Gif)</h2>
+
+    <img src="A1BlinkGif.gif" alt="Gif showing 3 blue LED's blinking in succession">
+    <p>Here is a gif of my simple pattern blinking circuit. This is composed of three blue led's which follow the pattern of Bottom Light -> Middle Light -> Top Light and continues repeating. Each light is on for 1 second, and then there is a 1 second wait until the next light turns on.</p>
+
+    <h2>Assignment Static Image</h2>
+
+    <img src="A1BlinkStaticImage.PNG" alt="Static Image of an electronic circuit">
+    <p>
+      Above is a static image of my circuit. It's a little bit messy since my breadboard was being uncooperative! However, in essence I have a separate section for each light that I run. Each section draws power from a separate port, then also includes a LED and a resistor. There's also some basic cable management, such that each blue wire correlates to an arduino output port, and the white wires connect to the negative strip, which is grounded through the black wire.</p>
+
+    <h2>Assignment Schematic</h2>
+
+    <img src="circuit.png" alt="Circuit Diagram showing three circuits">
+    <p>
+      Above is the schematic image of my circuit. I have chosen to depict each LED's schematic, although they are all the same setup. Each pin is supplying 5 volts, and each LED creates a 3.3V voltage drop.  I decided that having them pull from separate ports would be the easiest way for me to allow them to blink individually with my current knowledge, since I could just control which ports were powered. I chose to use 100 ohm resistors since they were the closest to my target resistance (85 ohms). Further, it seems reasonable to adjust towards greater resistance in this situation since picking the closest lower ohm resistor would cause the LED to burn out faster. </p>
+
+    <p>
+      The calculations I made for the ideal resistance were as follows:
+      I know the port's output is 5V, and that a blue LED has a voltage drop of 3.3V, meaning that the system has 1.7V unresisted with just wires. In order to hit a target current of 0.02A, I can solve the equation 1.7V=0.02A*R for R to get R=1.7/0.02 (or R = 85), where R is my target resistance. However, since I do not have an 85 Ohm resistor, I used a 100 Ohm one, resulting in me solving 1.7V=A*100R, getting A = 1.7/100, or 0.017A as my actual current.</p>
+
+    <h2>Code</h2>
+    <pre><code class="language-arduino">
+      // GLOBAL PARAMETERS
+      // Numbers of Active Ports
+      int ActivePorts[] = {8,10,12};
+      // Count of Active Ports
+      int ActivePortsCount = 3;
+      
+      // Setup Function
+      void setup() {
+        // Performs Setup Functionality on Active Ports
+        portSetup();
+      
+        // Initiates a Rotating Blink Pattern
+        // First Param is time a LED stays on, and
+        // Second param is time between progressing to the
+        // next LED
+        rotatingBlinkManager(1000, 2000);
+      }
+      
+      // Port Setup Utility Function
+      // This function will activate all ports
+      // in ActivePorts
+      void portSetup() {
+        // Guard against bad input
+        if (ActivePortsCount > 0) {
+          // Iterates through ActivePorts and performs the
+          // pinMode Activation on them
+          for(int i = 0; i < ActivePortsCount; i++) {
+            // Finds number of port that should be activated
+            int portNumber = ActivePorts[i];
+            // Activates the port
+            pinMode(portNumber, OUTPUT);
+          }
+        }
+      }
+      
+      // Utility Function that turns on power to a port,
+      // then turns it off after a delay- intended to be used
+      // with LED's
+      // @param port: Port number being affected
+      // @param blinkTime: amount of time to supply power (ms)
+      void blinkPort(int port, int blinkTime) {
+        // Activates target port
+        digitalWrite(port, HIGH);
+        // Delays so we can see the light before it turns off
+        delay(blinkTime);
+        // Deactivates target port
+        digitalWrite(port, LOW);
+      }
+      
+      // Utility/Manager Function to manage a rotating blink pattern
+      // @param blinkTime: Time an LED should remain on before going out (ms)
+      // @param staggerTime: Time before beginning the next LED's blink pattern (ms)
+      void rotatingBlinkManager(int blinkTime, int staggerTime) {
+        // This loop will run forever
+        while (true) {
+          // Iterator through #Active Ports
+          for (int i = 0; i < ActivePortsCount; i++){
+            // Calls the blink method
+            blinkPort(ActivePorts[i], blinkTime);
+            // Delays before moving to the next LED
+            delay(staggerTime);
+          }
+        }
+      }
+    </code></pre>
+
+    <h2>Questions</h2>
+
+    <h3>LED Graph</h3>
+    <img src="A1BlinkLEDVoltage.png" alt="Graph Showing Voltage (Y Axis) over Time (X Axis) for 3 LED's">
+    <p>This graph shows the voltage over time of three LED's, each one represented by different colors. This is based off their voltage drops, which is why each has a value of 3.3V when active, and 0 when not. However it is worth noting that the actual value across them was approximately 2.86 volts when measured, I have simply chosen to put the ideal rather than the actual in the diagram. As the graph shows, each LED is on for 1 second each time and then off for 5 seconds. </p>
+    
+    <h3>Runnable Circuit Count</h3>
+    <p>The Arduino Uno has 14 pins that can dispense voltage. Each one would be able to release 5V. In an ideal world I would have 85 ohm resistors, and have a total current draw of 0.02 each for a total of 0.28 Amps, but my system uses 100 Ohm resistors and has a current of 0.017 per section, so it would have 0.017 * 14 = 0.238 Amps drawn. </p>
+
+    <h3>When is Blinking Unnoticeable?</h3>
+    <p>For me, I stop noticing the blinking at 10ms delay.</p>
   </body>
 </html>
