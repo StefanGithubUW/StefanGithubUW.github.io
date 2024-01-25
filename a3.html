@@ -130,10 +130,11 @@
     <h2>Questions</h2>
 
     <h3>Voltage Divider Resistor</h3>
-    <img src="A2FadeQ1.PNG" alt="Graph Showing Voltage (Y Axis) over Time (X Axis) for 3 LED's">
     <p>
       The resistor needs to be R1 under our current schematic but this does seem like something we could work around. With the way we've set up map, we map with high voltage (low resistance) correlating to writing high voltage. However, we could maintain this by subtracting our read value from the maximum (1023) if r2 was static and r1 was variable
     </p>
+
+    <p>For example, in my current schematic if the static resistor was first and the potentiometer had a resistance of 2.5k ohms, we would have a measured voltage of (2.5kOhms/12.5kOhms)*5V resulting in a Voltage measured of 1 V. In my code this would track as if this was dark, but I could get around it by subtracting it from 5 (or from 1023 as raw analog read input). </p>
     <p>CALCULATIONS GO HERE</p>
     
 
