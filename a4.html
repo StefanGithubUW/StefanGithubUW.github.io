@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, maximum-scale=1.0" />
+    <link rel="stylesheet" href="prism.css">
+    <script defer src="prism.js"></script>
+
+    <title>Stefan D'Souza's HCDE 439 Physical Computing Page!</title>
+
+    <link href="style.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <style>
+      p {
+          margin-bottom: 40px;
+      }
+
+      h1 {
+          margin-bottom: 20px;
+      }
+
+      h2 {
+          margin-bottom: 20px;
+      }
+
+      h3 {
+          margin-bottom: 10px;
+      }
+      </style>
+
+    <h1>Stefan D'Souza's Assignment 4: Libraries</h1>
+    <h2>Assignment Recording Video</h2>
+
+    <video width="640" height="360" controls>
+      <source src="a4LibrariesVideo.mp4" type="video/mp4">
+    </video>
+  
+    <p>Here is a video of my circuit, where the stuffed eggplant is guarding over her can opener. As you get too close and start to grab the can opener, the servo moves to warn you that you're getting too close to it. As you move away the servo goes back down! </p>
+
+
+    <h2>Assignment Static Image</h2>
+
+    <img src="a4LibrariesStaticImage.jpeg" alt="Static Image of an electronic circuit">
+    <p>
+      Above is a static image of my circuit. I run two main parts. The first is a circuit used for capacitive sensing. It links a two pins to a 1M Ohm resistor and connects a can opener in through alligator clips. The second section is a servo. The servo is linked to 5V, Ground, and to an pin we use to send input so it knows the angle to set.</p>
+
+    <h2>Assignment Schematic</h2>
+
+    <img src="a4LibrariesSchematic.jpg" alt="Circuit Diagram showing two circuits" style="transform: rotate(270deg);">
+    <p>
+      Above is the schematic image of my circuit. The second schematic is based on the class image of how the schematic was pictured, which is why power and ground are not represented in the circuit diagram.</p>
+    
+    <p>The 1M Ohm resistor is based mostly on what we learned in class, but to my understanding it mostly serves to keep the circuit at a safe level, and to make sure we don't end the circuit with an overcharged capacitor that might pose a risk at a greater scale. </p>    
+
+    <h2>Code</h2>
+    <p>Citations: I have looked at the Servo Sweep example and the Capacitive Sensing code from class. The code I use is my own but I have referenced these resources.</p>
+    <pre><code class="language-arduino">
+      #include <Servo.h> // Includes Servo Library
+      #include <CapacitiveSensor.h> // Includes Capacitive Sensor Library
+      
+      
+      Servo serv; // Initiates Servo object
+      CapacitiveSensor capSens = CapacitiveSensor(4,2); // Initiates a Capacitive Sensor Object using pins 4 and 2 (sensor)
+      int pos; // variable to store the servo position
+      
+      void setup() {
+        serv.attach(9);  // links pin 9 to the servo as the pin that sends the signal
+      }
+      
+      void loop() {
+        long capSensed = capSens.capacitiveSensor(15); // performs capacitive sensing with 15 samples and stores result in capSensed
+      
+        constrain(capSensed, 0, 800); // Limits value to be between 0 and 800. This is based on the setting I am in and is not transferrable
+        pos = map(capSensed, 0, 800, 180, 0); // Maps the value we sensed with capacitive sensing to a degree between 180 and 0
+      
+        serv.write(pos); // signals the angle to the servo
+      
+        delay(50); // delay so we have a little bit of time for everything to run
+      }        
+    </code></pre>
+
+    <h2>Questions</h2>
+
+    <h3>Say you are using a servo motor you attach to pin 9. In your loop() you have the following code:
+      for (int i=0, i<180, i++){servo.write(i); delay(100);}</h3>
+    <img src="a4LibrariesQuestion1.png" alt="Static Image of an electronic circuit">
+
+
+    <p>This is a representative graph, and the width of the columns has been exaggerated so I can describe the trend, it is not exactly how it would look. I looked at the Servo library's code, and it looks like the way it works is that it takes the input parameter as a degree, and then maps it to a value between a minimum and maximum pulse width. Then it calls a function called write_milliseconds that calculates the amount of time to pulse for in order to represent this mapped value (this is effectively the same as mapping onto analogwrite). As a result, as we increase the angle, we increase the proportion of time which we will send 5V (same as analogWriting more value) in order to communicate a larger angle to the Servo.</p>
+    <p>The graph roughly represents this increase in "analogWrite" value over time, although it increases much faster than you would normally see since otherwise all the lines would be very thin. If you wanted to look at it in another way, the perceived Voltage would start at 0 when 0 degrees was passed, and ramp up to 5V (255 analogWrite) when 180 degrees was passed, with a line connecting the values, although of course it wouldn't actually be a linear increase in voltage, just a linear increase in the proportion of time that 5V was sent instead of 0v.</p>
+
+    <h3>Your input device is slightly broken, leading it to give us an erroneous reading 1% of the time. How can we address this? Answer in (pseudo)code.</h3>
+    <pre><code class = "language-arduino">
+
+      List input;
+      // adds <samples> input readings to the list
+      for (int i = 0; i < samples; i++) {
+        input.append(collectInput());
+      }
+    
+      return median(input);
+    </code></pre>
+    
+    <p>The issue in this case is that 1% of the time, we can get a input collection (I'll call these reads for brevity) that could have any value the sensor could return (this could also extend to returning values outside of normal, but I'm assuming it  returns correctly formatted input, not stuff like NULL or NaN). Our fear here is it could return a massive number that would make systems like finding the mean pointless.</p>
+    <p>I think the easiest way to protect against this case is to take multiple samples for each sensor "read" we do and then find the median. An easy solution might be to read 5 times (30 reads takes ~2ms), and then return the median value. </p>
+    <p>The logic here is that we tend to expect values to be fairly clustered within a millisecond of time. As a result, any that's a huge outlier either below or above the actual would get culled with the median calculation. If it was randomly erroneously in the same range as all the other values, it would have minimal impact in our system, and it would remove a correct value, but only barely change the result value. Its extremely unlikey to get more than 2 1% chances within 5 samples, so the bad read would likely be one of the values thrown away in the median calculation, and we could lower this chance by adding samples (this would increase calculation req's). If there is a sudden change in the system (like a 2000% increase within the ~0.5 ms it takes to run the input collection), this wouldn't catch it on the immediate run of a read, but the next iteration of the loop would do the 5 reads process again, and the granularity would become less noticeable as overall reads per second increased</p>
+
+    <h3>Your input device is slightly noisy, leading the measurement to randomly deviate from the true measurement up or down by 10%. How can we address this? Answer in (pseudo)code.    </h3>
+    <pre><code class = "language-arduino">
+    // This is the operation I'd perform each time I did a read,
+    // assuming that the found value is truly random and will be between 0.9 and 1.1 times the actual
+      int input = 0;
+      for (int i = 0; i < sampleCount; i++) {
+        input += collectInput()
+      }
+      return input/sampleCount;</code></pre>
+    <p>I would perform the input collection operation (which I will call reads) 5-20 times keeping track of the total values. I'd return the average of those values. This should be memory efficient since its mostly addition and one division operation at the end. If you really cared about memory efficiency, you could just return the total and then do your map based on that (mapping an input range of 2 - 10 vs 5(2) - 5(10) is effectively the same).</p>
+    <p>As the amount of reads increases, we will reduce the variance, since the random deviation will smooth out over more samples.</p>
+    
+  </body>
+</html>
