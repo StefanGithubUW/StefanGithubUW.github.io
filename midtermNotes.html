@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, maximum-scale=1.0" />
+    <link rel="stylesheet" href="prism.css">
+    <script defer src="prism.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+ 
+
+    <title>Stefan D'Souza's HCDE 439 Physical Computing Page!</title>
+
+    <link href="style.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <style>
+      p {
+          margin-bottom: 40px;
+      }
+
+      h1 {
+          margin-bottom: 20px;
+      }
+
+      h2 {
+          margin-bottom: 20px;
+      }
+
+      h3 {
+          margin-bottom: 10px;
+      }
+      </style>
+
+    <h1>Stefan D'Souza's Midterm Notes</h1>
+    
+    <h2>Blinky Lights</h2>
+    <p>To solve blinky lights problems, start by finding whichever light blinks the most often. We currently assume that all lights blink for the same period of time.</p>
+
+    <p>Next, solve so that you have all other lights in terms of the fastest light. Consider the example: There are three lights; the first one blinks three times as often as the second one, which blinks 7 times more often than the third. We can write this as</p>
+
+    <div>
+      We can write this as: \( y = \frac{x}{3} \), \( z = \frac{y}{7} \)
+    </div>
+    <div>
+      This solves to: \( x = 3y \), \( x = 21z \)
+    </div>
+
+    <p>From here, we can use a for loop from 1 to the highest coefficient (21). For each light, we blink them on when i % coefficient is 0. </p>
+    <pre><code class = "language-arduino">
+      int x = 1;
+      int y = 2;
+      int z = 3;
+      
+      void setup() {
+        pinMode(x, OUTPUT);
+        pinMode(y, OUTPUT);
+        pinMode(z, OUTPUT);
+      }
+      
+      void loop() {
+        for (int i = 1; i <= 21; i++) {
+          // Turns on Fastest Light
+          if (i % 1 == 0) {
+            digitalWrite(x, HIGH);
+          }
+
+          // Turns on Medium Light
+          if (i % 3 == 0) {
+            digitalWrite(y, HIGH);
+          }
+      
+          // Turns on SLowest Light
+          if (i % 21 == 0) {
+            digitalWrite(z, HIGH);
+          }
+      
+          // Gives a delay, then turns off all lights
+          // and then waits so that the first light isn't always on
+          delay(100);
+          digitalWrite(x, LOW);
+          digitalWrite(y, LOW);
+          digitalWrite(z, LOW);
+          delay(100);
+        }
+      }      
+    </code></pre>
+
+    <p>As you might have noticed, we have to code in an amount off-time in here to keep the fastest light from being on all the time. This is a little annoying, so we can instead turn off the lights when their mod value is not present. To do this, we have to double all the mod values. As long as we do this consistently, the proportion will remain the same.</p>
+    <pre><code class = "language-arduino">
+      // Omitting setup for cleanliness
+      void loop() {
+        for (int i = 1; i <= 42; i++) {
+          // Turns on Fastest Light
+          if (i % 2 == 0) {
+            digitalWrite(x, HIGH);
+          } else {
+            digitalWrite(x, LOW);
+          }
+          
+          // Turns on Medium Light
+          if (i % 6 == 0) {
+            digitalWrite(y, HIGH);
+          } else {
+            digitalWrite(y, LOW);
+          }
+      
+          // Turns on SLowest Light
+          if (i % 42 == 0) {
+            digitalWrite(z, HIGH);
+          } else {
+            digitalWrite(z, LOW);
+          }
+      
+          // Gives a delay
+          delay(100);
+      
+        }
+      }         
+    </code></pre>
+
+    <p>Another possibility with blinky lights is the version we saw in class, where their relation to the fastest light is not just frequency but duration. Consider the problem:There are three lights; the first one blinks three times as often but one third as long as the second one, which blinks 7 times more often than but one seventh as long as the third. Now, when the third light turned on, the second would be expected to turn on and off 7 times within the duration, and the first would do so 21 times. A simple solution to this is to swap the lights automatic off delay to a toggle. For the first light, this would change nothing, but this would cause the second and third lights to maintain the same proportion of blinks but be on for triple and 21 times the duration of the first light respectively. The basics of we want can be seen in the snippet below.</p>
+
+    <pre><code class = "language-arduino">
+      void loop() {
+        for (int i = 1; i <= 42; i++) {
+          // Turns on Fastest Light
+          if (i % 2 == 0) {
+            toggle(x);
+          }
+          
+          // Turns on Medium Light
+          if (i % 6 == 0) {
+            toggle(y);
+          }
+      
+          // Turns on Slowest Light
+          if (i % 42 == 0) {
+            toggle(z);
+          }
+      
+          // Gives a delay
+          delay(100);
+      
+        }
+      }      
+    </code></pre>
+
+    <p>Ofc, there isn't a toggle function, but thats the generality, We'd probably need to toggle using something like the following</p>
+  
+    <pre><code class = "language-arduino">
+      int x = 1;
+      int y = 2;
+      int z = 3;
+      
+      void setup() {
+        pinMode(x, OUTPUT);
+        pinMode(y, OUTPUT);
+        pinMode(z, OUTPUT);
+      }
+      
+      int xIsOn = 0;
+      int yIsOn = 0;
+      int zIsOn = 0;
+      
+      void loop() {
+        for (int i = 1; i <= 42; i++) {
+          // Swaps State of Fastest Light
+          if (i % 2 == 0) {
+            xIsOn = !xIsOn;
+          }
+          
+          // Swaps State of Medium Light
+          if (i % 6 == 0) {
+            yIsOn = !yIsOn;
+          }
+      
+          // Swaps State of Slowest Light
+          if (i % 42 == 0) {
+            zIsOn = !zIsOn;
+          }
+      
+          digitalWrite(x, xIsOn);
+          digitalWrite(y, yIsOn);
+          digitalWrite(z, zIsOn);
+      
+          // Gives a delay
+          delay(100);
+        }
+      }      
+    </code></pre>
+  
+    <h3>Button Lights</h3>
+    <p>Sometimes we get asked to have a button interact with an LED. We can do this by doing a digitalRead and printing the state of the button:</p>
+    <pre><code class = "language-arduino">
+      const int buttonPin = 2;  // the number of the pushbutton pin
+      const int ledPin = 13;    // the number of the LED pin
+      
+      int buttonState = 0;  // variable for reading the pushbutton status
+      
+      void setup() {
+        pinMode(ledPin, OUTPUT);
+        pinMode(buttonPin, INPUT);
+      }
+      
+      void loop() {
+        // read the state of the pushbutton value:
+        buttonState = digitalRead(buttonPin);
+      
+        // check if the pushbutton is pressed. If it is, the buttonState is HIGH:
+        if (buttonState == HIGH) {
+          digitalWrite(ledPin, HIGH);
+        } else {
+          digitalWrite(ledPin, LOW);
+        }
+      } 
+    </code></pre>
+
+    <p>However, a more difficult case is when we want a button press to toggle the button's state, and we want holding the button down to be interpreted as a single button press. To do this, we'll have to introduce some new global variables...</p>
+
+    <pre><code class = "language-arduino">
+      // variable for reading the pushbutton status
+      int buttonState = 0;
+      // on any if check, this is if the button was previously pressed
+      int previousButtonState = 0;
+      // Count of presses
+      int totalPresses = 0;
+
+      void setup() {
+        pinMode(ledPin, OUTPUT);
+        pinMode(buttonPin, INPUT);
+      }
+
+      void loop() {
+        // read the state of the pushbutton value:
+        buttonState = digitalRead(buttonPin);
+
+        if (buttonState == HIGH && previousButtonState == HIGH) {
+          // Do Nothing  
+        } else if (buttonState == HIGH && previousButtonState == LOW) {
+          // if the button is pressed and previously wasn't, we note a press
+          // and mark that it is currently pressed
+          totalPresses++;
+          previousButtonState = HIGH;
+        } else if (buttonState == LOW && previousButtonState = HIGH) {
+          // if the button is newly off, we need to reset our flag
+          previousButtonState = LOW;
+        } else (buttonState == LOW && previousButtonState = LOW) {
+          // Do Nothing
+        }
+
+        // if we have an odd number of presses, the light should be on.
+        if (totalPresses % 2 != 0) {
+          digitalWrite(ledPin, HIGH);
+        } else {
+          digitalWrite(ledPin, LOW);
+        }
+        
+      }
+    </code></pre>
+
+    <p>In this code, we don't look for the button state, but rather check for a change in button state</p>
+
+    <p>We also need to consider the case of the led fading. If we want the led to fade in and out while pressing the button, and reset when the button is released, we can do the following</p>
+    <pre><code class = "language-arduino">
+      // variable for reading the pushbutton status
+      int buttonState = 0;
+      // Variable that tracks if we're fading in or not
+      bool fadeIn = true;
+
+      void setup() {
+        pinMode(ledPin, OUTPUT);
+        pinMode(buttonPin, INPUT);
+      }
+
+      void loop() {
+        // read the state of the pushbutton value:
+        int buttonState = digitalRead(buttonPin);
+      
+        // Decides if i is increasing or decreasing
+        int increment = 1;
+        if (fadeIn != true) {
+          increment = -1;
+        }
+      
+        // If the button is on, we write our i value and increment
+        if (buttonState == HIGH) {
+          analogWrite(ledPin, i);
+          i += increment;
+        } else if (buttonState == LOW) {
+          // if the button turns off we reset our value
+          i = 0;
+          fadeIn = true;
+        }
+      
+        // Makes sure we stay in our bounds
+        if (i == 0) {
+          fadeIn = true;
+        } else if (i == 255) {
+          fadeIn = false;
+        }
+      
+        delay(30);
+      }
+    </code></pre>
+
+    <p>I don't anticipate needing to combine these so that we toggle fading (so that holding a button down is a single press). However, here's a barebones implementation that saves your place in the light cycle and lets a press (or hold) of the button toggle whether or not the light was fading out.</p>
+
+    <pre><code class = "language-arduino">
+      // variable for reading the pushbutton status
+      int buttonState = 0;
+      // on any if check, this is if the button was previously pressed
+      int previousButtonState = 0;
+      // Count of presses
+      int totalPresses = 0;
+      // Variable that tracks if we're fading in or not
+      bool fadeIn = true;
+      
+      void setup() {
+        pinMode(ledPin, OUTPUT);
+        pinMode(buttonPin, INPUT);
+      }
+      
+      void loop() {
+        // read the state of the pushbutton value:
+        buttonState = digitalRead(buttonPin);
+      
+        // Decides if i is increasing or decreasing
+        int increment = 1;
+        if (fadeIn != true) {
+          increment = -1;
+        }
+      
+        if (buttonState == HIGH && previousButtonState == HIGH) {
+          // Do Nothing
+        } else if (buttonState == HIGH && previousButtonState == LOW) {
+          // if the button is pressed and previously wasn't, we note a press
+          // and mark that it is currently pressed
+          totalPresses++;
+          previousButtonState = HIGH;
+        } else if (buttonState == LOW && previousButtonState = HIGH) {
+          // if the button is newly off, we need to reset our flag
+          previousButtonState = LOW;
+        } else (buttonState == LOW && previousButtonState = LOW) {
+          // Do Nothing
+        }
+      
+        // if we have an odd number of presses, the light should be doing it's fade.
+        if (totalPresses % 2 != 0) {
+          analogWrite(ledPin, i);
+          i += increment;
+          delay(30);
+        } else {
+          // no need to have a delay if we don't have a light on
+          digitalWrite(ledPin, LOW);
+        }
+      
+        // Makes sure we stay in our bounds
+        if (i == 0) {
+          fadeIn = true;
+        } else if (i == 255) {
+          fadeIn = false;
+        }
+      }      
+    </code></pre>
+  </body>
+</html>
