@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, maximum-scale=1.0" />
+    <link rel="stylesheet" href="prism.css">
+    <script defer src="prism.js"></script>
+
+    <title>Stefan D'Souza's HCDE 439 Physical Computing Page!</title>
+
+    <link href="style.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <style>
+      p {
+          margin-bottom: 40px;
+      }
+
+      h1 {
+          margin-bottom: 20px;
+      }
+
+      h2 {
+          margin-bottom: 20px;
+      }
+
+      h3 {
+          margin-bottom: 10px;
+      }
+      </style>
+
+    <h1>Stefan D'Souza's Assignment 4: Libraries</h1>
+    <h2>Assignment Recording Video</h2>
+
+    <video width="640" height="360" controls>
+      <source src="a5TransistorsVideo.mp4" type="video/mp4">
+    </video>
+  
+    <p>Here is a video of my circuit, where the lights scale in brightness based on how close you are to the capacitive sensor</p>
+
+
+    <h2>Assignment Static Image</h2>
+
+    <img src="a5TransistorsStaticImage.jpg" alt="Static Image of an electronic circuit">
+    <p>
+      Above is a static image of my circuit. I run two main parts. The first is a circuit used for capacitive sensing. It links a two pins to a 1M Ohm resistor and connects a measuring spoon in through alligator clips. The second section is a LED strip. As we get closer to the capacitive sensor made out of the spoon, the LED's get brighter.</p>
+
+    <h2>Assignment Schematic</h2>
+
+    <img src="a5TransistorsSchematicA.PNG" alt="Circuit Diagram showing two circuits">
+    <img src="a5TransistorsSchematicB.PNG" alt="Circuit Diagram showing two circuits">
+
+    <p>
+      Above is the schematic image of my circuit. The second schematic is based on the class image of how the schematic was pictured, which is why power and ground are not represented in the circuit diagram.</p>
+    
+    <p>The 1M Ohm resistor is based mostly on what we learned in class, but to my understanding it mostly serves to keep the circuit at a safe level, and to make sure we don't end the circuit with an overcharged capacitor that might pose a risk at a greater scale. </p>    
+
+    <p>I'll breakdown the upper schematic a bit more. The power output is 12V. I use the LED strip with 300 white leds, which are broken down into sets of 3 in series, with each set in parallel. 3.3Voltage Drop * 3 lights results in a voltage of 2.1 through each series of lights, which have a 181 ohm resistor in them netting 2.1/181 = 11.6 miliamps of current. Multiplying this by 100 sets makes it 1.16 total Amps, which is in line given that the max output of our power supply is 2 amps. We can expect to see 12 V across the circuit, with it being pretty close to 12V across the led strip given that there's negligble other resistance in the circuit (the transistor doesn't have too much). Within individual 3 sets, we would see a voltage of 2.1 across the resistor and 3.3 on each LED. The current going in and coming out of the led strips is 1.16 Amps, which is also what we would expect in and out of the transistor when current is moving.</p>
+    <p></p>
+
+    <h2>Code</h2>
+    <p>Citations: I have looked at the Servo Sweep example and the Capacitive Sensing code from class. The code I use is my own but I have referenced these resources. Also noting the comment about pinMode initializing, I do not use pinMode in my circuit (It didn't seem to be required), but pin 9 meant to be a gate pin, although we use it pretty much as if it's a output pinMode.</p>
+    <pre><code class="language-arduino">
+      #include &lt;CapacitiveSensor.h&gt; // Includes Capacitive Sensor Library
+  
+      CapacitiveSensor capSens = CapacitiveSensor(6,2); // Initiates a Capacitive Sensor Object using pins 6 and 2 (sensor)
+      int toWrite; // variable to store brightness to write
+      
+      void setup() {
+      }
+      
+      void loop() {
+        long capSensed = capSens.capacitiveSensor(15); // performs capacitive sensing with 15 samples and stores result in capSensed
+      
+        constrain(capSensed, 40, 800); // Limits value to be between 40 and 800. This is based on the setting I am in and is not transferrable
+        toWrite = map(capSensed, 30, 800, 0, 255); // Maps the value we sensed with capacitive sensing to a analogWrite value
+      
+        analogWrite(9, toWrite); // writes the value to pin 9 (the transistor gate)
+      }        
+    </code></pre>
+
+    <h2>Questions</h2>
+
+    <h3>What is the absolute maximum amount of current between pins 2 and 3?</h3>
+
+    <p>80 Amps, based on the diode body forward current.</p>
+
+    <h3>Draw a schematic for a circuit with using at least your arduino, a DC motor, a flyback diode, and capacitors between power and ground. Find parts with datasheets you could use for each of these schematic components.</h3>
+    <pre><code class = "language-arduino">
+
+      List input;
+      // adds <samples> input readings to the list
+      for (int i = 0; i < samples; i++) {
+        input.append(collectInput());
+      }
+    
+      return median(input);
+    </code></pre>
+    
+    <p>The issue in this case is that 1% of the time, we can get a input collection (I'll call these reads for brevity) that could have any value the sensor could return (this could also extend to returning values outside of normal, but I'm assuming it  returns correctly formatted input, not stuff like NULL or NaN). Our fear here is it could return a massive number that would make systems like finding the mean pointless.</p>
+    <p>I think the easiest way to protect against this case is to take multiple samples for each sensor "read" we do and then find the median. An easy solution might be to read 5 times (30 reads takes ~2ms), and then return the median value. </p>
+    <p>The logic here is that we tend to expect values to be fairly clustered within a millisecond of time. As a result, any that's a huge outlier either below or above the actual would get culled with the median calculation. If it was randomly erroneously in the same range as all the other values, it would have minimal impact in our system, and it would remove a correct value, but only barely change the result value. Its extremely unlikey to get more than 2 1% chances within 5 samples, so the bad read would likely be one of the values thrown away in the median calculation, and we could lower this chance by adding samples (this would increase calculation req's). If there is a sudden change in the system (like a 2000% increase within the ~0.5 ms it takes to run the input collection), this wouldn't catch it on the immediate run of a read, but the next iteration of the loop would do the 5 reads process again, and the granularity would become less noticeable as overall reads per second increased</p>
+
+    <h3>Here is the datasheet for the L293D chip: https://www.ti.com/product/L293DLinks to an external site.. Draw a schematic using at least your arduino, this chip, and two motors. Write (pseudo) code that shows how you would move the motors both forward, both back, then one forward one back, and one back then forward</h3>
+    <pre><code class = "language-arduino">
+    // This is the operation I'd perform each time I did a read,
+    // assuming that the found value is truly random and will be between 0.9 and 1.1 times the actual
+      int input = 0;
+      for (int i = 0; i < sampleCount; i++) {
+        input += collectInput()
+      }
+      return input/sampleCount;</code></pre>
+    <p>I would perform the input collection operation (which I will call reads) 5-20 times keeping track of the total values. I'd return the average of those values. This should be memory efficient since its mostly addition and one division operation at the end. If you really cared about memory efficiency, you could just return the total and then do your map based on that (mapping an input range of 2 - 10 vs 5(2) - 5(10) is effectively the same).</p>
+    <p>As the amount of reads increases, we will reduce the variance, since the random deviation will smooth out over more samples.</p>
+    
+  </body>
+</html>
