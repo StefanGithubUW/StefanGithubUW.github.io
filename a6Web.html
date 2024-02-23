@@ -36,31 +36,26 @@
       <source src="a6WebVideo.mp4" type="video/mp4">
     </video>
   
-    <p>Here is a video of my circuit, where the lights scale in brightness based on how close you are to the capacitive sensor</p>
+    <p>Here is a video of my circuit, where clicking the mouse button will turn on the light, and where interacting with the joystick will change the screen based on if the position of the X or Y axis of the stick is greater</p>
 
 
     <h2>Assignment Static Image</h2>
 
     <img src="a6WebStaticImage.jpg" alt="Static Image of an electronic circuit">
     <p>
-      Above is a static image of my circuit. I run two main parts. The first is a circuit used for capacitive sensing. It links a two pins to a 1M Ohm resistor and connects a measuring spoon in through alligator clips. The second section is a LED strip. As we get closer to the capacitive sensor made out of the spoon, the LED's get brighter.</p>
+      Above is a static image of my circuit. I run two main parts. The first is a circuit that reads input from the joystick. It is always receiving power and I read the x and y positions of the joystick once every 10 ms. The other part is a resisted led that lights up when the arduino sends a command to write HIGH to pin 6, which occurs when the mouse button is pressed.</p>
 
     <h2>Assignment Schematic</h2>
 
-    <img src="a5TransistorsSchematicA.PNG" alt="Circuit Diagram showing two circuits">
-    <img src="a5TransistorsSchematicB.PNG" alt="Circuit Diagram showing two circuits">
-
-    <p>
-      Above is the schematic image of my circuit. The second schematic is based on the class image of how the schematic was pictured, which is why power and ground are not represented in the circuit diagram.</p>
-    
-    <p>The 1M Ohm resistor is based mostly on what we learned in class, but to my understanding it mostly serves to keep the circuit at a safe level, and to make sure we don't end the circuit with an overcharged capacitor that might pose a risk at a greater scale. </p>    
-
-    <p>I'll breakdown the upper schematic a bit more: The power output is 12V. I use the LED strip with 300 white leds, which are broken down into sets of 3 in series, with each set in parallel. 3.3Voltage Drop * 3 lights results in a voltage of 2.1 through each series of lights, which have a 181 ohm resistor in them netting 2.1/181 = 11.6 miliamps of current. Multiplying this by 100 sets makes it 1.16 total Amps, which is in line given that the max output of our power supply is 2 amps. We can expect to see 12 V across the circuit, with it being pretty close to 12V across the led strip given that there's negligble other resistance in the circuit (the transistor doesn't have too much). Within individual 3 sets, we would see a voltage of 2.1 across the resistor and 3.3 on each LED. The current going in and coming out of the led strips is 1.16 Amps, which is also what we would expect in and out of the transistor when current is moving.</p>
-    <p>I am using under 2 amps of current, the transistor can throughflow much more (discussed in q1), and also has a avalanche and continuos drain rating of 29+ Amps (as in all the ratings are higher than 29)</p>
+    <img src="a6WebSchematic.jpg" alt="Circuit Diagram showing two circuits" style="transform: rotate(270deg);">
+    <p>Explanations: I use a 100Ohm resistor for the circuit with the blue LED because it is the closest to the ideal of 85 Ohms. THe calculation for this is 5V - 3.3 Voltage Drop for the blue LED = 1.7V, and then using V=IR with a target I of 0.020 Amps, we divide 1.7/.020 and get 85 Ohms as we solve for resistance.</p>
+    <p>We will expect the joystick to give reads of 0-1023. In my testing. 0 maps to the lower side and 1023 maps to the higher side of each axis, although this doesn't really matter since this can be "fixed" just by reorienting the joystick. The base value for both x and y is set. I believe my joystick is slightly bent, so it's neutral state is between 502 and 503 as a read on the x axis and at 505 on the y axis. I have coded these values in since it is reasonably consistent with my joystick, but you could use a calibration process to use with other joysticks, I just don't want to overcomplicate my work.</p>  
+    <p>In my testing, the joystick will never return a value outside of the analog read values, but if using one that will, I would constrain the the read to be inside of those values.</p>
 
     <h2>Code</h2>
-    <p>Citations: I have looked at the starter button code from class.</p>
+    <p>Citations: I have looked at the starter button code from Hannah's github examples. To my understanding, we did not need to change the arduino pairing and other similar functions.</p>
     <pre><code class="language-arduino">
+      // Arduino Code
       int xPin = A1; // sets input x pin
       int yPin = A0; // sets input y pin
 
@@ -94,39 +89,7 @@
     </code></pre>
 
     <pre><code class="language-arduino">
-    int xPin = A1; // sets input x pin
-    int yPin = A0; // sets input y pin
-
-    void setup() {
-      Serial.begin(9600); // starts serial
-      pinMode(6, OUTPUT); // sets pin 6 to output
-    }
-
-    void loop() {
-      int serialRead = 99999; // sets a garbage val for serialRead
-
-      if (Serial.available()){ // if serial is available
-        serialRead = Serial.read(); // reads serial value
-      }
-        
-      if (serialRead == 1) { // if the serial value is 1
-        digitalWrite(6, HIGH); // we want to turn on the led
-      } else if (serialRead == 0) { // if serial val is not 1
-        digitalWrite(6, LOW); // we turn off LED
-      }
-
-      int xValue = analogRead(xPin); // collect x value from joystick
-      int yValue = analogRead(yPin); // collect y value from joystick
-      
-      Serial.print(xValue); // prints xVal
-      Serial.print(","); // prints comma
-      Serial.println(yValue); // prints yVal and newline character to filter for
-
-      delay(10); // delays slightly
-    }
-    </code></pre>
-
-    <pre><code class="language-arduino">
+    // JS Code
     const BAUD_RATE = 9600; // This should match the baud rate in your Arduino sketch
 
     let port, connectBtn; // Declare global variables
@@ -228,7 +191,6 @@
         port.close();
       }
     }
-    
     </code></pre>   
   </body>
 </html>
