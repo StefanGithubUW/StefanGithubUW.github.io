@@ -39,30 +39,40 @@
 
     <p>In specific, I targeted two components as my "widgets", a led light strip that would shift modes, and a fan. The fan was a stretch goal and the led light strip was the core component of the project. In my implementation, the led light strip used a remote control, and the fan used capacitive sensing. </p>
 
+    <img src = "FinalProjectProposalImage.PNG">
+
+
     <h2>Technical Implementation- Schematic</h2>
 
     <h3>Schematic (Light Component)</h3>
     <img src = "FPLightCadSchematic.PNG">
     <p>This schematic is complete, although it doesn't mention power supply to arduino (as if it was plugged in to the computer in previous assignments). The power supply to the arduino in this was done by a 9V battery but could be done with the computer instead.</p>
+    <p>The LED strip in the schematic was the only one cad offered, and was a slightly different variety to the one we use, so the D In and D Out sections may be ignored.</p>
 
     <h3>Schematic (Fan Component)</h3>
     <img src = "FPFanCadSchematic.PNG">
     <p>This schematic also does not show power supply to arduino, but it also doesn't show the metal piece used in the capacitive sensor, as this cannot be modeled in TinkerCAD. However, it would be attached to pin 10 by an alligator clip, which would look like a wire coming out between pin 10 and the resistor in the schematic, and connecting to a shape labeled "Metal Piece".</p>
+    <p>I wasn't sure if I needed to provide calculations and this writeup is a bit on the long side, but the LED power and current calculations can be found in my A5: <a href="https://stefangithubuw.github.io/a5Transistors.html">link</a></p>
 
     <h2>Technical Implementation- Circuit</h2>
 
     <h3>CAD (Lights Component)</h3>
     <img src = "FPLightCadStatic.PNG">
-
+    <p>The LED strip in the schematic was the only one cad offered, and was a slightly different variety to the one we use, so the D In and D Out sections may be ignored.</p>
+    
     <h3>Static Image (Lights Component)</h3>
     <img src = "FPLightStaticImage.jpg">
+    <p>A lot of the things were secured in place with tape since I borrowed many of my components and thus didn't want to solder or glue things together.</p>
 
     <h3>CAD (Fan Component)</h3>
     <img src = "FPFanCadImage.PNG">
     <p>As mentioned in the Schematic section, CAD doesn't let me show the metal piece for capacitive sensing, but it is depicted in the static image below. In the tinkercad static image, it would be connected by a wire to the wire coming from pin 10, on the side plugged in to the breadboard.</p>
+    <p>The datasheet used to find the servo's max current is here: <a href="https://www.adafruit.com/product/711">link</a></p>
 
+    
     <h3>Static Image (Fan Component)</h3>
     <img src = "FPFanStaticImage.jpg">
+    <p>This static image required taking apart parts of the fan, so it would look a bit different (for example the button location) internally when all together.</p>
 
     <h2>Technical Implementation- Code</h2>
     <h3>Code for Lights Component:</h3>
@@ -208,7 +218,15 @@
     </code></pre>
 
     <h2>Technical Implementation- Writeup</h2>
+    <p>The lights component was the primary piece of the project. The initial goal was for this to be operated through a microphone, with claps being a signal to switch modes, but issues with the microphone caused me to change over to a IR receiver and a remote control. In terms of implementation, there are two primary parts to the circuit- an IR receiver, and the LED control system. The IR receiver is hooked up to the arduino directly. It's role is to identify whenver a remote control button is pressed and the signal is received. In this implementation, any button press will trigger the mode-shift, such that any button may be used interchangably. I based this on christmas tree lights and how they work. The other component was the LED strip. This section was also hooked up to the arduino, as well as an external power source (the battery) and a transistor. The power source was always linked to the LED strip, and I controlled the brightness of that strip by changing the value written to the transistor's gate pin, which changed the amount of current which was allowed to flow (and the brightness as a direct result). I also used a pair of power supply batteries, one of which powered the arduino and one of which was used directly for the LED strip's power    </p>
+    <p>From a code perspective, my implementation was fairly straightforward, I used the IR library in order to receive signals with my IR receiver, and any time a signal was received, I changed to the next mode in a series of modes I had chosen to support. The different modes were dim, bright, fading, and off. For dim, bright, and off, I implemented this by checking if their mode was active, and then by writing the appropriate value to the transistors gate pin to produce a current that would show that level of brightness. Implementing the fading was a bit trickier, since I wanted to show the fade but also keep checking for new signals while the fading action occurs. To do this, I moved the i value in the fade code (using a fairly standard fading implementation that goes from i = 0 to 255 and writes i) into being a global variable. Then, whenever the loop ran, it first checked for signal, and then adjusted the output based on the current i value. For this, I also had to make it so that the change in i was a global variable. For this mode only, I did have to add a delay, or the light wouldn't show the fading process well, but it was a minimal delay and I don't think it would be especially noticeable.</p>
+    <p>From an interaction perspective, the remote control element appealed to me because it held a lot of those smart home elements still. Although this wasn't in the scope of my project, one could easily use or make an app that simulates ir signals on your phone. This isn't just convenient, but it also increases accessibility, especially for people with disabilities that prevent them from exerting pressure, which can make traditional buttons a bit of a disaffordance. One challenge I ran into for this is that there needed to be a lockout so pressing the remote wouldn't send a dozen signals and cause the mode to shift many times a second, but I also wanted the remote press to feel responsive. In the end, I decided to use a 1 second delay after a button press, which causes some slight friction but given that users tend to wait a second for a response (for example, clicking the power button on a tv remote), it seemed like a reasonable implementation, especially since I wanted it to be consistent for the fading as well, else it would have a fast response for the normal impementations and a slow response for the fade. A way I realized to potentially address it would be to set the delay to the length of a single fade direction and give it a one time flag to run, and then shift the delay to the light control section after the swap in lighting, and just not put the delay for the in the fade's if case. However, I thought of this solution after the presentation and I didn't want my implementation to not line up.</p>
 
+    <p>The fan was a stretch goal. It wasn't meant to be hugely innovative as much as it was something to build off the lights and that coexist in the same ecosystem. It was initially going to be remote controlled, but my IR sensor broke so I moved to the backup option for it, capacitive sensing. I used capacitive sensing as an option since it would still uphold the accessibility values of being touch (without presses) based, and because it provides a nice and easy to understand button. The button is made using a capacitive sensing setup, and the fan is a dc motor with a fan attachment that is powered directly by the arduino. The speed at which the motor runs is controlled by the value we write to the enable pin of the L293D chip, which I used since it's reliable and has a lot of functionality built in to it.</p>
+    <p>From a code perspective, the implementation was very similar to that of my lights, circuit. I used a similar mode construction, and although I only supported on and off, more modes could be added onto that system just by adding to the maximum mode and to the if statement that determined otput. In a bit more detail, we'd just need to write a different value to the enable pin, which would give us a different overall result in terms of motor speed and air moved. One tricky bit about the code here was calibrating for capacitive sensing, since it was no longer reasonable to hard-code thresholds based on my current environment. To do this, I performed a basic calibration process to get a good idea of the environment's capacitive sensing values, and then picked a read threshold that was comfortably over to the point that it only triggered on contact in my testing.</p>
+    <p>From an interaction perspective, I found the capacitive sensing to be really enjoyable to use, although I might consider implementing some form of haptic feedback if I developed the project further. Without the complication of the fading, I was able to use a global flag for if I should delay to separate my value being read and the code that changed the state of the fan so I could defer the delay until after the the fan swapped modes. Briefly discussing the IR reciever, I had found it to be fairly directional, so if I had been able to go with that implementation instead I don't think the two devices would have competed for or erroneously received each other's signals, and this could be worked around regardless by making the remote signal specific, which a phone implementation could greatly aid.</p>
+
+    <p>Overall, I think this project was really interesting to me and I learned a lot from it!</p>
 
     <h2>Demo Videos</h2>
 
@@ -216,10 +234,14 @@
     <video width="640" height="360" controls>
       <source src="FPLightsVideo.mp4" type="video/mp4">
     </video>
+    <p>Link: <a href="https://youtu.be/VvTjHCNgL1w">link</a></p>
+
 
     <h3>Fan Demo Video</h3>
     <video width="640" height="360" controls>
       <source src="FPFanVideo.mp4" type="video/mp4">
     </video>
+    <p>Link: <a href="https://youtube.com/shorts/ADjf0eBs3Fs?feature=share">link</a></p>
+
 
 </html>
