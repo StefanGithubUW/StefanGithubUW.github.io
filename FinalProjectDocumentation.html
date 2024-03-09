@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, maximum-scale=1.0" />
+    <link rel="stylesheet" href="prism.css">
+    <script defer src="prism.js"></script>
+
+    <title>Stefan D'Souza's HCDE 439 Physical Computing Page!</title>
+
+    <link href="style.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <style>
+      p {
+          margin-bottom: 40px;
+      }
+
+      h1 {
+          margin-bottom: 20px;
+      }
+
+      h2 {
+          margin-bottom: 20px;
+      }
+
+      h3 {
+          margin-bottom: 20px;
+      }
+
+      video {
+        margin-bottom: 20px;
+      }
+      </style>
+
+    <h1>Stefan D'Souza's Final Project Documentation</h1>
+    <h2>Concept Description</h2>
+    <p>For this project my primary goal was to develop devices that could be used in the home and which would be able to offer a quality of life boost by making some components of household utilities a bit easier to interact with. The project was heavily inspired by smart devices, although I moved away from them a bit after realizing my microphone sensor was not good enough. A large focus for me was to make items that would have accessible and easy to use interactions - so not heavily push sensitive. The housing, meanwhile, was meant to be more of a proof of concept than a final design, especially since I had to use a borrowed arduino (initially I was going to use two separate ones but my arduino broke) and jury-rig a couple broken parts.  </p>
+
+    <p>In specific, I targeted two components as my "widgets", a led light strip that would shift modes, and a fan. The fan was a stretch goal and the led light strip was the core component of the project. In my implementation, the led light strip used a remote control, and the fan used capacitive sensing. </p>
+
+    <h2>Technical Implementation- Schematic</h2>
+
+    <h3>Schematic (Light Component)</h3>
+    <img src = "FPLightCadSchematic.PNG">
+    <p>This schematic is complete, although it doesn't mention power supply to arduino (as if it was plugged in to the computer in previous assignments). The power supply to the arduino in this was done by a 9V battery but could be done with the computer instead.</p>
+
+    <h3>Schematic (Fan Component)</h3>
+    <img src = "FPFanCadSchematic.PNG">
+    <p>This schematic also does not show power supply to arduino, but it also doesn't show the metal piece used in the capacitive sensor, as this cannot be modeled in TinkerCAD. However, it would be attached to pin 10 by an alligator clip, which would look like a wire coming out between pin 10 and the resistor in the schematic, and connecting to a shape labeled "Metal Piece".</p>
+
+    <h2>Technical Implementation- Circuit</h2>
+
+    <h3>CAD (Lights Component)</h3>
+    <img src = "FPLightCadStatic.PNG">
+
+    <h3>Static Image (Lights Component)</h3>
+    <img src = "FPLightStaticImage.jpg">
+
+    <h3>CAD (Fan Component)</h3>
+    <img src = "FPFanCadImage.PNG">
+    <p>As mentioned in the Schematic section, CAD doesn't let me show the metal piece for capacitive sensing, but it is depicted in the static image below. In the tinkercad static image, it would be connected by a wire to the wire coming from pin 10, on the side plugged in to the breadboard.</p>
+
+    <h3>Static Image (Fan Component)</h3>
+    <img src = "FPFanStaticImage.jpg">
+
+    <h2>Technical Implementation- Code</h2>
+    <h3>Code for Lights Component:</h3>
+    <pre><code class="language-arduino">
+      #include &lt;IRremote.h> // Includes IR Library
+
+      const int irPin = 11; // sets ir Pin
+      IRrecv irrecv(irPin); // starts receiving on pin 11
+      decode_results results; // variable for decoded results
+      
+      int mode = 0; // Mode Flag
+      int i = 254; // i var for fading lights
+      int iterVal = -1; // incrementor for fading lights
+      
+      void setup(){
+        irrecv.enableIRIn(); // enables IR
+      }
+      
+      void loop(){
+        // if we receive input (stored at address of results)
+        if (irrecv.decode(&results)){
+          // Increment mode
+          mode += 1;
+      
+          // if mode is more than 3
+          if (mode > 3) {
+            mode = 0; // set mode to 0
+          }
+      
+          // delay to avoid multiple reads from one button press
+          delay(1000);
+      
+          // Resumes IR sensing
+          irrecv.resume();
+        }
+      
+        // in mode 0...
+        if (mode == 0) {
+          analogWrite(6, 0); // writes 0 to gate pin
+          i = 254; // resets i
+          iterVal = -1; // resets iterator (could also be called incrementor)
+        } else if (mode == 1) { // if mode is 1...
+          analogWrite(6, 122); // writes 122 to gate pin
+        } else if (mode == 2) { // if mode is 2...
+          analogWrite(6, 255); // writes 255 to gate pin
+        } else if (mode == 3) { // if mode is 3...
+          analogWrite(6, i); // writes i to gate pin (for fade)
+          i += iterVal; // increments i by incrmentor
+      
+          // whenever i is about to go out of bounds of analogWrite, we
+          // reverse fade direction
+          if (i == 255 || i == 0) {
+            iterVal *= -1; // changes the sign of the iterVal
+          }
+      
+          // delay so we can see the fade
+          delay(10);
+        }
+      
+      }
+            
+    </code></pre>
+
+    <h3>Code for Fan Component:</h3>
+    <pre><code class="language-arduino">
+      #include &lt;IRremote.h> // Include IR Library
+      #include &lt;CapacitiveSensor.h> // Include Capacitive Sensor Library
+        
+      // Initiates capacitive sensor
+      CapacitiveSensor capSens = CapacitiveSensor(11,10);
+      
+      // Mode Flag (This could also be a bool but I wanted to leave potential for multiple modes)
+      int mode = 0;
+      
+      // Max for calibration
+      long maxVal = INT8_MIN;
+      
+      // Boolean for if we should delay this instance
+      bool toDel = false;
+      
+      void setup(){
+        // Serial Monitor - For debugging
+        // Serial.begin(9600);
+      
+        // Delay since IR library sometimes lags when arduino boots up
+        delay(5000);
+      
+        // We do 30 calibration cycles
+        for (int i = 0; i < 30; i++) {
+          // Performs a sensor reading
+          long temp = capSens.capacitiveSensor(15);
+      
+          // If this is a new maximum val
+          if (temp > maxVal) {
+            maxVal = temp; // we set the environmental max to this val
+          }
+        }
+      }
+      
+      void loop(){
+        // capSensed is a capacitive sensor reading
+        long capSensed = capSens.capacitiveSensor(15);
+      
+        // Serial Debugging Statements
+        // Serial.println(capSensed);
+        // Serial.println(maxVal);
+        
+        // Our threshold for a sensor read is 5x the max environmental value
+        if (capSensed > (5 * maxVal)){
+          // Increments mode
+          mode += 1;
+      
+          // we only allow modes 0 and 1 currently
+          if (mode == 2) {
+            mode = 0; // sets the mode to 0 if it goes over supported modes
+          }
+      
+          // sets the delay flag
+          toDel = true;
+        }
+      
+        // if Mode is 0
+        if (mode == 0) {
+          // We send 0 to our enable pin
+          analogWrite(6, 0);
+        } else { // otherwise
+          // we send 255 to our enable pin
+          analogWrite(6, 255);
+        }
+        
+        // Now that we've initiated the target behavior, we
+        // do our delays so the sensor doesn't read the same touch
+        // multiple times
+        if (toDel == true) {
+          // Delay to prevent repeat reads
+          delay(1000);
+      
+          // turns the flag back off
+          toDel = false;
+        }
+      }
+        
+    </code></pre>
+
+    <h2>Technical Implementation- Writeup</h2>
+
+
+    <h2>Demo Videos</h2>
+
+    <h3>Lights Demo Video</h3>
+    <video width="640" height="360" controls>
+      <source src="FPLightsVideo.mp4" type="video/mp4">
+    </video>
+
+    <h3>Fan Demo Video</h3>
+    <video width="640" height="360" controls>
+      <source src="FPFanVideo.mp4" type="video/mp4">
+    </video>
+
+</html>
